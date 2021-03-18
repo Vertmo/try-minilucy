@@ -1,0 +1,3 @@
+[submodule "MiniLucy"]
+	path = MiniLucy
+	url = git@github.com:Vertmo/MiniLucy.git
