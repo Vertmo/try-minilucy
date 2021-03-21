@@ -39,6 +39,9 @@ let lex_and_parse_program () =
   parse_with_error lexbuf
 
 let compile_program step =
+  (* reset the global counter *)
+  Atom.counter := 0;
+
   let pfile = lex_and_parse_program () in
   let tfile = Typechecker.type_file pfile in
   let cfile = Clockchecker.elab_file tfile in
@@ -50,11 +53,29 @@ let compile_program step =
   );
 
   Buffer.reset Format.stdbuf;
-  let kfile =
+  let file =
     try Kernelizer.kernelize_file ~formatter:Format.str_formatter step cfile
     with Done ->
       (compile_results##setValue (Js.string (Buffer.contents Format.stdbuf));
-       raise Done) in ()
+       raise Done) in
+
+  let nfile = Normalizer.norm_file file in
+
+  if (step = Norm) then (
+    print_result NMinils.print_file nfile;
+    raise Done);
+
+  Causalitychecker.check_file nfile;
+  let nfile = Scheduler.schedule_file nfile in
+
+  if (step = Sched) then (
+    print_result NMinils.print_file nfile;
+    raise Done);
+
+  (* Translate *)
+  let mfile = Translator.translate_file nfile in
+
+  ()
 
 let compile_and_exn step (_ : #Dom_html.event Js.t) =
   (try compile_program step with
@@ -81,6 +102,12 @@ let compile_and_exn step (_ : #Dom_html.event Js.t) =
 let init (_ : #Dom_html.event Js.t) =
   (Page.by_id "check")##.onclick := Dom_html.handler (compile_and_exn Check);
   (Page.by_id "last")##.onclick := Dom_html.handler (compile_and_exn Last);
+  (Page.by_id "automaton")##.onclick := Dom_html.handler (compile_and_exn Automaton);
+  (Page.by_id "reset")##.onclick := Dom_html.handler (compile_and_exn Reset);
+  (Page.by_id "switch")##.onclick := Dom_html.handler (compile_and_exn Switch);
+  (Page.by_id "block")##.onclick := Dom_html.handler (compile_and_exn Block);
+  (Page.by_id "norm")##.onclick := Dom_html.handler (compile_and_exn Norm);
+  (Page.by_id "sched")##.onclick := Dom_html.handler (compile_and_exn Sched);
   Js._true
 
 let _ =

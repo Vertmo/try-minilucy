@@ -11,31 +11,31 @@ article, aside {
     flex-basis: 45%;
     flex-grow: 1;
     min-width: 300px;
+    max-height: 95%;
     padding: 10px;
     display: flex;
     flex-direction: column;
-}
-
-#editor-box {
-    flex-basis: 75%;
-    flex-grow: 1;
 }
 
 .CodeMirror {
     height: 100%;
 }
 
+#editor-box {
+    flex-basis: 95%;
+    height: 95%;
+    max-height: 95%;
+}
+
 #editor-controls {
     padding: 10px;
     display: flex;
+    flex-wrap: wrap;
 }
 
 #result-box {
     flex-basis: 75%;
-}
-
-#compil-result {
-    height: 100%;
+    max-height: 75%;
 }
 
 #console {
