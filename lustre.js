@@ -16,9 +16,7 @@
         }
 
         var indentKeywords = wordRegexp(["let"]);
-
         var dedentKeywords = wordRegexp(["tel"]);
-
         var keywords = wordRegexp(
             ["node","returns", "var",
              "if","then","else",
@@ -28,8 +26,9 @@
              "reset", "every",
              "automaton", "state", "until", "unless", "continue",
              "last"]);
-
         var types = wordRegexp(["int","bool","on"]);
+        var atoms = wordRegexp(["true","false"]);
+        var numberLiteral = /^(-|)(\d+)/;
 
         return {
             startState: function() {
@@ -52,8 +51,10 @@
                 }
 
                 if (stream.match(keywords)) return "keyword";
-
                 if (stream.match(types)) return "type";
+                if (stream.match(atoms)) return "atom";
+                if (stream.match(numberLiteral)) return "number";
+
 
                 var ch = stream.next();
                 return null;

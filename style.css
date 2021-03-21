@@ -1,0 +1,34 @@
+body {
+    height: 100%;
+    font-size: 15;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: clip;
+}
+
+article, aside {
+    flex-basis: 45%;
+    flex-grow: 1;
+    min-width: 300px;
+    padding: 10px;
+}
+
+#editor-box {
+    display: flex;
+    flex-direction: column;
+}
+
+#editor-controls {
+    padding: 10px;
+    display: flex;
+}
+
+#results-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.CodeMirror {
+    flex-grow: 1;
+}
