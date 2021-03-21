@@ -12,11 +12,17 @@ article, aside {
     flex-grow: 1;
     min-width: 300px;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
 #editor-box {
-    display: flex;
-    flex-direction: column;
+    flex-basis: 75%;
+    flex-grow: 1;
+}
+
+.CodeMirror {
+    height: 100%;
 }
 
 #editor-controls {
@@ -24,11 +30,32 @@ article, aside {
     display: flex;
 }
 
-#results-box {
-    display: flex;
-    flex-direction: column;
+#result-box {
+    flex-basis: 75%;
 }
 
-.CodeMirror {
-    flex-grow: 1;
+#compil-result {
+    height: 100%;
+}
+
+#console {
+    max-height: 200px;
+    flex-basis: 25%;
+    overflow-y: auto;
+    background-color: #f5f5f5;
+}
+
+ul#console {
+    list-style-type: none;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    line-height: 25px;
+    padding-left: 5px;
+}
+ul#console li {
+    border-bottom: solid 1px #80808038;
+}
+
+ul#console .console-error {
+    color: red;
 }

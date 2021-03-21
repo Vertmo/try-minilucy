@@ -16,18 +16,16 @@ let cr_config = object%js
 end
 let compile_results = Codemirror.fromTextArea (Dom_html.getElementById "compil-result") cr_config
 
-let by_id s = Dom_html.getElementById s
-
-let print_position outx lexbuf =
+let string_of_position lexbuf =
   let pos = lexbuf.lex_curr_p in
-  Printf.fprintf outx "%s:%d:%d" pos.pos_fname
+  Printf.sprintf "%d:%d"
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf =
   try Parser.file Lexer.token lexbuf with
   | Parser.Error ->
-    Printf.fprintf stderr "Syntax error in program at %a\n" print_position lexbuf;
-    exit (-1)
+    Page.Console.error (Printf.sprintf "Syntax error in program at %s\n" (string_of_position lexbuf));
+    raise Done
 
 (** Format and print the program [p] using the [printer] function *)
 let print_result printer p =
@@ -60,12 +58,29 @@ let compile_program step =
 
 let compile_and_exn step (_ : #Dom_html.event Js.t) =
   (try compile_program step with
-   | Done -> ());
+   | Done -> ()
+   | Typechecker.UnexpectedEquationError (id, loc) ->
+     Page.Console.error
+       (Printf.sprintf "Type checking error : UnexpectedEquation for %s at %s\n"
+          id (string_of_loc loc))
+   | Typechecker.TypeError (msg, loc) ->
+     Page.Console.error
+       (Printf.sprintf "Type checking error : %s at %s\n"
+          msg (string_of_loc loc))
+   | Clockchecker.ClockError (msg, loc) ->
+     Page.Console.log
+       (Printf.sprintf "Clock checking error : %s at %s\n"
+          msg (string_of_loc loc))
+   | Causalitychecker.CausalityError (msg, nodeid, loc) ->
+     Page.Console.log
+       (Printf.sprintf "Causality error : %s in node %s at %s\n"
+          msg nodeid (string_of_loc loc))
+  );
   Js._true
 
 let init (_ : #Dom_html.event Js.t) =
-  (by_id "check")##.onclick := Dom_html.handler (compile_and_exn Check);
-  (by_id "last")##.onclick := Dom_html.handler (compile_and_exn Last);
+  (Page.by_id "check")##.onclick := Dom_html.handler (compile_and_exn Check);
+  (Page.by_id "last")##.onclick := Dom_html.handler (compile_and_exn Last);
   Js._true
 
 let _ =

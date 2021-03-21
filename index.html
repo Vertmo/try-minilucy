@@ -2,21 +2,27 @@
     <head>
         <title>Try-MiniLucy</title>
         <meta charset="UTF-8"/>
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
         <link rel="stylesheet" href="lib/codemirror.css"/>
         <link rel="stylesheet" href="style.css"/>
         <script src="lib/codemirror.js"></script>
         <script src="lustre.js"></script>
     </head>
     <body>
-        <article id="editor-box">
-            <textarea id="editor" name="editor"></textarea>
+        <article>
+            <div id="editor-box">
+                <textarea id="editor" name="editor"></textarea>
+            </div>
             <div id="editor-controls">
                 <input id="check" type="button" value="Check" />
                 <input id="last" type="button" value="Last" />
             </div>
         </article>
-        <aside id="results-box">
-            <textarea id="compil-result" name="result"></textarea>
+        <aside>
+            <div id="result-box">
+                <textarea id="compil-result" name="result"></textarea>
+            </div>
+            <ul id="console"></ul>
         </aside>
         <script src="minilucy.js"></script>
     </body>

@@ -4,6 +4,7 @@ SRC_DIR := MiniLucy/src
 
 SRC := \
   codemirror.ml \
+  page.ml \
 	minilucy.ml
 
 all: minilucy.js
