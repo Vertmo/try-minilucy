@@ -17,11 +17,7 @@ article, aside {
     flex-direction: column;
 }
 
-.CodeMirror {
-    height: 100%;
-}
-
-#editor-box {
+#editor {
     flex-basis: 95%;
     height: 95%;
     max-height: 95%;
@@ -33,7 +29,7 @@ article, aside {
     flex-wrap: wrap;
 }
 
-#result-box {
+#compil-results {
     flex-basis: 75%;
     max-height: 75%;
 }

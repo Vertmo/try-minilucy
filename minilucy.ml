@@ -2,19 +2,8 @@ open Js_of_ocaml
 open Common
 open Lexing
 
-let editor_config = object%js
-  val lineNumbers = Js.bool true
-  val mode = Js.string "lustre"
-  val readOnly = Js.bool false
-end
-let editor = Codemirror.fromTextArea (Dom_html.getElementById "editor") editor_config
-
-let cr_config = object%js
-  val lineNumbers = Js.bool true
-  val mode = Js.string "lustre"
-      val readOnly = Js.bool true
-end
-let compile_results = Codemirror.fromTextArea (Dom_html.getElementById "compil-result") cr_config
+let editor = Ace.edit "editor"
+let compile_results = Ace.edit "compil-results"
 
 let string_of_position lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -31,7 +20,7 @@ let parse_with_error lexbuf =
 let print_result printer p =
   Buffer.reset Format.stdbuf;
   printer Format.str_formatter p;
-  compile_results##setValue (Js.string (Buffer.contents Format.stdbuf))
+  compile_results##.session##setValue (Js.string (Buffer.contents Format.stdbuf))
 
 let lex_and_parse_program () =
   let s = Js.to_string (editor##getValue ()) in
@@ -56,7 +45,7 @@ let compile_program step =
   let file =
     try Kernelizer.kernelize_file ~formatter:Format.str_formatter step cfile
     with Done ->
-      (compile_results##setValue (Js.string (Buffer.contents Format.stdbuf));
+      (compile_results##.session##setValue (Js.string (Buffer.contents Format.stdbuf));
        raise Done) in
 
   let nfile = Normalizer.norm_file file in
@@ -111,4 +100,8 @@ let init (_ : #Dom_html.event Js.t) =
   Js._true
 
 let _ =
+  editor##.session##setMode (Js.string "ace/mode/lustre");
+  editor##setOption (Js.string "tabSize") (Js.string "2");
+  compile_results##.session##setMode (Js.string "ace/mode/lustre");
+  compile_results##setReadOnly (Js.bool true);
   Dom_html.window##.onload := Dom_html.handler init

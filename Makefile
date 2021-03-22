@@ -3,7 +3,7 @@ include MiniLucy/Makefile.conf
 SRC_DIR := MiniLucy/src
 
 SRC := \
-  codemirror.ml \
+  ace.ml \
   page.ml \
 	minilucy.ml
 
