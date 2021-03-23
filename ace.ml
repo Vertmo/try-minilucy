@@ -14,6 +14,7 @@ class type ace = object
   method setValue : js_string t -> unit meth
   method setReadOnly : bool t -> unit meth
   method setOption : js_string t -> js_string t -> unit meth
+  method on : js_string t -> (unit -> unit) -> unit meth
 end
 
 let edit (div : string) : ace Js.t =

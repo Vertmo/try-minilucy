@@ -18,9 +18,8 @@ let parse_with_error lexbuf =
 
 (** Format and print the program [p] using the [printer] function *)
 let print_result printer p =
-  Buffer.reset Format.stdbuf;
   printer Format.str_formatter p;
-  compile_results##.session##setValue (Js.string (Buffer.contents Format.stdbuf))
+  compile_results##.session##setValue (Js.string (Format.flush_str_formatter ()))
 
 let lex_and_parse_program () =
   let s = Js.to_string (editor##getValue ()) in
@@ -41,11 +40,10 @@ let compile_program step =
     raise Done
   );
 
-  Buffer.reset Format.stdbuf;
   let file =
     try Kernelizer.kernelize_file ~formatter:Format.str_formatter step cfile
     with Done ->
-      (compile_results##.session##setValue (Js.string (Buffer.contents Format.stdbuf));
+      (compile_results##.session##setValue (Js.string (Format.flush_str_formatter ()));
        raise Done) in
 
   let nfile = Normalizer.norm_file file in
@@ -64,7 +62,9 @@ let compile_program step =
   (* Translate *)
   let mfile = Translator.translate_file nfile in
 
-  ()
+  if (step = Translate) then (
+    print_result Obc.print_file mfile;
+    raise Done)
 
 let compile_and_exn step (_ : #Dom_html.event Js.t) =
   (try compile_program step with
@@ -97,11 +97,15 @@ let init (_ : #Dom_html.event Js.t) =
   (Page.by_id "block")##.onclick := Dom_html.handler (compile_and_exn Block);
   (Page.by_id "norm")##.onclick := Dom_html.handler (compile_and_exn Norm);
   (Page.by_id "sched")##.onclick := Dom_html.handler (compile_and_exn Sched);
+  (Page.by_id "translate")##.onclick := Dom_html.handler (compile_and_exn Translate);
   Js._true
 
 let _ =
   editor##.session##setMode (Js.string "ace/mode/lustre");
   editor##setOption (Js.string "tabSize") (Js.string "2");
+  editor##.session##setValue (Page.get_saved_program ());
+  editor##on (Js.string "change") (fun () -> Page.save_program (editor##getValue ()));
+
   compile_results##.session##setMode (Js.string "ace/mode/lustre");
   compile_results##setReadOnly (Js.bool true);
   Dom_html.window##.onload := Dom_html.handler init
