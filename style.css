@@ -23,6 +23,11 @@ article, aside {
     max-height: 95%;
 }
 
+.error-marker {
+    background-color: rgba(255, 0, 0, 0.3);
+    position: absolute;
+}
+
 #editor-controls {
     padding: 10px;
     display: flex;

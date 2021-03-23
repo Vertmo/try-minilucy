@@ -10,29 +10,71 @@ let string_of_position lexbuf =
   Printf.sprintf "%d:%d"
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-let parse_with_error lexbuf =
+(** Show an error with [text] at [loc] in the console as well as the editor *)
+let show_error ?(in_console=false) text loc =
+  if in_console then
+    Page.Console.error (Printf.sprintf "%s at %s" text (string_of_loc loc));
+
+  let (spos, epos) = loc in
+  let s_row = spos.pos_lnum - 1 and e_row = epos.pos_lnum - 1
+  and s_col = spos.pos_cnum - spos.pos_bol and e_col = epos.pos_cnum - epos.pos_bol in
+
+  let ann : Ace.annotation Js.t = object%js
+    val row = s_row
+    val column = s_col;
+    val text = Js.string text;
+    val _type = Js.string "error";
+  end in
+  editor##.session##setAnnotations(Js.array [|ann|]);
+
+  let range = new%js Ace.range s_row s_col e_row e_col in
+  ignore (editor##.session##addMarker range (Js.string "error-marker") (Js.string "text") true);
+  raise Done
+
+let parse_with_error ?(in_console=false) lexbuf =
   try Parser.file Lexer.token lexbuf with
   | Parser.Error ->
-    Page.Console.error (Printf.sprintf "Syntax error in program at %s\n" (string_of_position lexbuf));
-    raise Done
+    show_error ~in_console "Syntax error" (lexbuf.lex_start_p, lexbuf.lex_curr_p)
+
+(** Execute a function while handling a possible compilation error *)
+let handle_compile_error ?(in_console=false) f a =
+  try f a with
+  | Typechecker.UnexpectedEquationError (id, loc) ->
+    show_error ~in_console (Printf.sprintf "Unexpected equation for %s" id) loc
+  | Typechecker.TypeError (msg, loc) ->
+    show_error ~in_console (Printf.sprintf "Type checking error : %s" msg) loc
+  | Clockchecker.ClockError (msg, loc) ->
+    show_error ~in_console (Printf.sprintf "Clock checking error : %s" msg) loc
+  | Causalitychecker.CausalityError (msg, nodeid, loc) ->
+    show_error ~in_console (Printf.sprintf "Causality error : %s in node %s" msg nodeid) loc
+  | e -> raise e
 
 (** Format and print the program [p] using the [printer] function *)
 let print_result printer p =
   printer Format.str_formatter p;
   compile_results##.session##setValue (Js.string (Format.flush_str_formatter ()))
 
-let lex_and_parse_program () =
+let lex_and_parse_program ?(in_console=false) () =
   let s = Js.to_string (editor##getValue ()) in
   let lexbuf = Lexing.from_string s in
-  parse_with_error lexbuf
+  parse_with_error ~in_console lexbuf
 
+(** Parse, type-check and clock-check a program *)
+let parse_and_check_program ?(in_console=false) () =
+  (* First, refresh annotations and markers *)
+  editor##.session##clearAnnotations ();
+  Ace.clear_markers editor##.session;
+
+  lex_and_parse_program ~in_console () |>
+  Typechecker.type_file |>
+  Clockchecker.elab_file
+
+(** Compile the program for visualisation purposes *)
 let compile_program step =
   (* reset the global counter *)
   Atom.counter := 0;
 
-  let pfile = lex_and_parse_program () in
-  let tfile = Typechecker.type_file pfile in
-  let cfile = Clockchecker.elab_file tfile in
+  let cfile = parse_and_check_program ~in_console:true () in
 
   if (step = Check)
   then (
@@ -67,25 +109,8 @@ let compile_program step =
     raise Done)
 
 let compile_and_exn step (_ : #Dom_html.event Js.t) =
-  (try compile_program step with
-   | Done -> ()
-   | Typechecker.UnexpectedEquationError (id, loc) ->
-     Page.Console.error
-       (Printf.sprintf "Type checking error : UnexpectedEquation for %s at %s\n"
-          id (string_of_loc loc))
-   | Typechecker.TypeError (msg, loc) ->
-     Page.Console.error
-       (Printf.sprintf "Type checking error : %s at %s\n"
-          msg (string_of_loc loc))
-   | Clockchecker.ClockError (msg, loc) ->
-     Page.Console.log
-       (Printf.sprintf "Clock checking error : %s at %s\n"
-          msg (string_of_loc loc))
-   | Causalitychecker.CausalityError (msg, nodeid, loc) ->
-     Page.Console.log
-       (Printf.sprintf "Causality error : %s in node %s at %s\n"
-          msg nodeid (string_of_loc loc))
-  );
+  (try handle_compile_error ~in_console:true compile_program step
+   with Done -> () | e -> raise e);
   Js._true
 
 let init (_ : #Dom_html.event Js.t) =
@@ -103,9 +128,12 @@ let init (_ : #Dom_html.event Js.t) =
 let _ =
   editor##.session##setMode (Js.string "ace/mode/lustre");
   editor##setOption (Js.string "tabSize") (Js.string "2");
+  editor##on (Js.string "change") (fun () ->
+      Page.save_program (editor##getValue ());
+      try ignore (handle_compile_error parse_and_check_program ())
+      with Done -> () | e -> raise e);
   editor##.session##setValue (Page.get_saved_program ());
-  editor##on (Js.string "change") (fun () -> Page.save_program (editor##getValue ()));
 
   compile_results##.session##setMode (Js.string "ace/mode/lustre");
-  compile_results##setReadOnly (Js.bool true);
+  compile_results##setReadOnly true;
   Dom_html.window##.onload := Dom_html.handler init
